@@ -169,49 +169,4 @@ public class Yolo
             }
         }
     }
-    
-    /// <summary>
-    /// 获取模型版本
-    /// </summary>
-    /// <param name="version"></param>
-    /// <returns></returns>
-    public int GetModelVersion(int version)
-    {
-        if (TaskType == "classify")
-        {
-            return 5;
-        }
-
-        if (version >= 8)
-        {
-            return 8;
-        }
-        else if (version < 8 && version >= 5)
-        {
-            return version;
-        }
-
-        if (ModelVersion != "")
-        {
-            return int.Parse(ModelVersion.Split('.')[0]);
-        }
-
-        int mid = OutputTensorInfo[1];
-        int right = OutputTensorInfo[2];
-        int size = mid < right ? mid : right;
-        
-        // 标签数量
-        int lableCount = LabelGroup.Length;
-        if (lableCount == size - 4 - SemanticSegmentationWidth)
-        {
-            return 8;
-        }
-
-        if (lableCount == 0 && mid < right)
-        {
-            return 8;
-        }
-
-        return 5;
-    }
 }

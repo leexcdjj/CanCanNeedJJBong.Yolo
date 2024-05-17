@@ -124,7 +124,7 @@ public class YoloBuilder
     /// <returns>Builder对象，用于链式调用</returns>
     public YoloBuilder SetInferenceParameters(int yoloVersion, int tensorWidth, int tensorHeight)
     {
-        _yolo.YoloVersion = _yolo.GetModelVersion(yoloVersion);
+        _yolo.YoloVersion = GetModelVersion(yoloVersion);
         _yolo.TensorWidth = tensorWidth;
         _yolo.TensorHeight = tensorHeight;
         return this;
@@ -154,4 +154,56 @@ public class YoloBuilder
 
         return result;
     }
+    
+    /// <summary>
+    /// 获取模型版本
+    /// </summary>
+    /// <param name="version"></param>
+    /// <returns></returns>
+    private int GetModelVersion(int version)
+    {
+        var taskType = _yolo.TaskType;
+        var modelVersion = _yolo.ModelVersion;
+        var outputTensorInfo = _yolo.OutputTensorInfo;
+        var labelGroup = _yolo.LabelGroup;
+        var semanticSegmentationWidth = _yolo.SemanticSegmentationWidth;
+        
+        if (taskType == "classify")
+        {
+            return 5;
+        }
+
+        if (version >= 8)
+        {
+            return 8;
+        }
+        else if (version < 8 && version >= 5)
+        {
+            return version;
+        }
+
+        if (modelVersion != "")
+        {
+            return int.Parse(modelVersion.Split('.')[0]);
+        }
+
+        int mid = outputTensorInfo[1];
+        int right = outputTensorInfo[2];
+        int size = mid < right ? mid : right;
+        
+        // 标签数量
+        int lableCount = labelGroup.Length;
+        if (lableCount == size - 4 - semanticSegmentationWidth)
+        {
+            return 8;
+        }
+
+        if (lableCount == 0 && mid < right)
+        {
+            return 8;
+        }
+
+        return 5;
+    }
+    
 }
