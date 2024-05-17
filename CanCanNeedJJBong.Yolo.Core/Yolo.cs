@@ -169,132 +169,13 @@ public class Yolo
             }
         }
     }
-
-
-    /// <summary>
-    /// 构造函数,目前支持yoloV5,yoloV6,yoloV8所转换的onnx模型,模型的详细信息可以推理网站https://netron.app/
-    /// </summary>
-    /// <param name="modelPath">模型路径:必须使用ONNX模型</param>      
-    /// <param name="yoloVersion">yolo版本:如5,6,8为yolo版本号,默认为0自动检测,但可能会发生错误的判断,比如yolo6就需要指定，也可能是没有正确训练或进行过特殊调整导致的,如果错误判断,请手动指定</param>
-    /// <param name="gpuIndex">gpuIndex:gpu索引</param>
-    /// <param name="enableGpu">启用gpu:默认为false</param>
-    public Yolo(string modelPath, int yoloVersion = 0, int gpuIndex = 0, bool enableGpu = false)
-    {
-        try
-        {
-            // 模型会话赋值
-            if (enableGpu)
-            {
-                // 模式
-                SessionOptions modo = new SessionOptions();
-                modo.AppendExecutionProvider_DML(gpuIndex);
-                ModelSession = new InferenceSession(modelPath, modo);
-            }
-            else
-            {
-                ModelSession = new InferenceSession(modelPath);
-            }
-
-            ModelInputName = ModelSession.InputNames.First();
-            ModelOutputName = ModelSession.OutputNames.First();
-            InputTensorInfo = ModelSession.InputMetadata[ModelInputName].Dimensions;
-            OutputTensorInfo = ModelSession.OutputMetadata[ModelOutputName].Dimensions;
-            
-            // 模型信息
-            var ModelInfo = ModelSession.ModelMetadata.CustomMetadataMap;
-            
-            if (ModelInfo.Keys.Contains("names"))
-            {
-                LabelGroup = SplitlabelSignature(ModelInfo["names"]);
-            }
-            else
-            {
-                LabelGroup = new string[0];
-            }
-
-            if (ModelInfo.Keys.Contains("version"))
-            {
-                ModelVersion = ModelInfo["version"];
-            }
-
-            if (ModelInfo.Keys.Contains("task"))
-            {
-                TaskType = ModelInfo["task"];
-                if (TaskType == "segment")
-                {
-                    string 模型输出名2 = ModelSession.OutputNames[1];
-                    OutputTensorInfo2_Segmentation = ModelSession.OutputMetadata[模型输出名2].Dimensions;
-                    SemanticSegmentationWidth = OutputTensorInfo2_Segmentation[1];
-                    MaskScaleRatioW = 1f * OutputTensorInfo2_Segmentation[3] / InputTensorInfo[3];
-                    MaskScaleRatioH = 1f * OutputTensorInfo2_Segmentation[2] / InputTensorInfo[2];
-                }
-                else if (TaskType == "pose")
-                {
-                    if (OutputTensorInfo[1] > OutputTensorInfo[2])
-                    {
-                        ActionWidth = OutputTensorInfo[2] - 5;
-                    }
-                    else
-                    {
-                        ActionWidth = OutputTensorInfo[1] - 5;
-                    }
-                }
-            }
-            else
-            {
-                if (OutputTensorInfo.Length == 2)
-                {
-                    TaskType = "classify";
-                }
-                else if (OutputTensorInfo.Length == 3)
-                {
-                    if (ModelSession.OutputNames.Count == 1)
-                    {
-                        TaskType = "detect";
-                    }
-                    else if (ModelSession.OutputNames.Count == 2)
-                    {
-                        // 模型输出名2
-                        string modelOutputNameTwo = ModelSession.OutputNames[1];
-                        
-                        OutputTensorInfo2_Segmentation = ModelSession.OutputMetadata[modelOutputNameTwo].Dimensions;
-                        SemanticSegmentationWidth = OutputTensorInfo2_Segmentation[1];
-                        MaskScaleRatioW = 1f * OutputTensorInfo2_Segmentation[3] / InputTensorInfo[3];
-                        MaskScaleRatioH = 1f * OutputTensorInfo2_Segmentation[2] / InputTensorInfo[2];
-                        TaskType = "segment";
-                    }
-                    else
-                    {
-                        // throw new Exception("暂不支持的模型");
-                    }
-                }
-                else
-                {
-                    throw new Exception("暂不支持的模型");
-                }
-            }
-
-            TaskMode = 0;
-            YoloVersion = GetModelVersion(yoloVersion);
-            TensorWidth = InputTensorInfo[3];
-            TensorHeight = InputTensorInfo[2];
-        }
-        catch (Exception ex)
-        {
-            // todo: 日至组件
-            // 错误打印日志
-            Console.WriteLine($"错误：{ex.Message}");
-
-            throw ex;
-        }
-    }
     
     /// <summary>
     /// 获取模型版本
     /// </summary>
     /// <param name="version"></param>
     /// <returns></returns>
-    private int GetModelVersion(int version)
+    public int GetModelVersion(int version)
     {
         if (TaskType == "classify")
         {
@@ -333,30 +214,4 @@ public class Yolo
 
         return 5;
     }
-    
-    /// <summary>
-    /// 分割标签名
-    /// </summary>
-    /// <param name="name">名</param>
-    /// <returns></returns>
-    private string[] SplitlabelSignature(string name)
-    {
-        // 删除括号
-        name = name.Replace("{", "").Replace("}", "");
-        
-        // 分割数组
-        string[] SplitArr = name.Split(',');
-        
-        string[] result = new string[SplitArr.Length];
-        
-        for (int i = 0; i < SplitArr.Length; i++)
-        {
-            int start = SplitArr[i].IndexOf(':') + 3;
-            int end = SplitArr[i].Length - 1;
-            result[i] = SplitArr[i].Substring(start, end - start);
-        }
-
-        return result;
-    }
-    
 }
