@@ -6,9 +6,9 @@ using OpenCvSharp;
 namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 
 /// <summary>
-/// segment模式(分割)
+/// YoloV8 segment模式(分割)
 /// </summary>
-public class SegmentInferenceStrategy : ITaskModelInferenceStrategy
+public class SegmentInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
     public List<YoloData> ExecuteTask(Tensor<float> data, float confidenceDegree, float iouThreshold, bool allIou,
         Yolo yolo)
@@ -117,6 +117,9 @@ public class SegmentInferenceStrategy : ITaskModelInferenceStrategy
                     result.Add(temp);
                 }
             }
+            
+            // NMS过滤
+            result = YoloHelper.NMSFilter(result, iouThreshold, allIou);
 
             return result;
         }

@@ -3,6 +3,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using CanCanNeedJJBong.Yolo.Core.Basic;
+using CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV5;
+using CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV6;
 using CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
@@ -221,7 +223,7 @@ public class Yolo
         {
             output0 = ModelSession.Run(container).First().AsTensor<float>();
 
-            result = new ClassifyInferenceStrategy().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
+            result = new ClassifyInferenceStrategyV8().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
         }
         
         if (ExecutionTaskMode == 1)
@@ -229,20 +231,16 @@ public class Yolo
             output0 = ModelSession.Run(container).First().AsTensor<float>();
             if (YoloVersion == 8)
             {
-                filterDataList = new DetectInferenceStrategy().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
+                result = new DetectInferenceStrategyV8().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
             }
             else if (YoloVersion == 5)
             {
-                // todo：暂不支持yolov5
-                // filterDataList = 置信度过滤_yolo5检测(output0, confidenceDegree);
+                result = new DetectInferenceStrategyV5().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
             }
             else
             {
-                // todo：暂不支持yolov6
-                // filterDataList = 置信度过滤_yolo6检测(output0, confidenceDegree);
+                result = new DetectInferenceStrategyV6().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
             }
-
-            result = YoloHelper.NMSFilter(filterDataList, iouThreshold, allIou);
         }
         
         if (ExecutionTaskMode == 2 || ExecutionTaskMode == 3)
@@ -253,16 +251,12 @@ public class Yolo
             output1 = list.ElementAtOrDefault(1)?.AsTensor<float>();
             if (YoloVersion == 8)
             {
-                filterDataList = new SegmentInferenceStrategy().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
-                // filterDataList = ConfidenceFilter_YoloV8_Split(output0, confidenceDegree);
+                result = new SegmentInferenceStrategyV8().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
             }
             else
             {
-                // todo: 暂不支持yolov5分割
-                // filterDataList = 置信度过滤_yolo5分割(output0, confidenceDegree);
+                result = new SegmentInferenceStrategyV5().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
             }
-
-            result = YoloHelper.NMSFilter(filterDataList, iouThreshold, allIou);
             
             ReductionMask(result, output1);
         }
@@ -271,20 +265,14 @@ public class Yolo
         {
             output0 = ModelSession.Run(container).First().AsTensor<float>();
 
-            filterDataList = new PoseInferenceStrategy().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
-            // filterDataList = ConfidenceFilter_Action(output0, confidenceDegree);
-            
-            result = YoloHelper.NMSFilter(filterDataList, iouThreshold, allIou);
+            result = new PoseInferenceStrategyV8().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
         }
         
         if (ExecutionTaskMode == 6)
         {
             output0 = ModelSession.Run(container).First().AsTensor<float>();
 
-            filterDataList = new ObbInferenceStrategy().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
-            // filterDataList = ConfidenceFilter_OBB(output0, confidenceDegree);
-            
-            result = YoloHelper.NMSFilter(filterDataList, iouThreshold, allIou);
+            result = new ObbInferenceStrategyV8().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
         }
 
         RestoreCoordinates(result);

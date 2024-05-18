@@ -4,9 +4,9 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 
 /// <summary>
-/// classify模式
+/// YoloV8 classify模式
 /// </summary>
-public class ClassifyInferenceStrategy : ITaskModelInferenceStrategy
+public class ClassifyInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
     public List<YoloData> ExecuteTask(Tensor<float> data, float confidenceDegree, float iouThreshold, bool allIou, Yolo yolo)
     {

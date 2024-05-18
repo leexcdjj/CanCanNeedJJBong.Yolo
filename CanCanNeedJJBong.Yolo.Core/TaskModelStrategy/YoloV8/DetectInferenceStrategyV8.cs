@@ -5,9 +5,9 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 
 /// <summary>
-/// detect模式(检测)
+/// YoloV8 detect模式(检测)
 /// </summary>
-public class DetectInferenceStrategy : ITaskModelInferenceStrategy
+public class DetectInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
     public List<YoloData> ExecuteTask(Tensor<float> data, float confidenceDegree, float iouThreshold, bool allIou, Yolo yolo)
     {
@@ -103,6 +103,9 @@ public class DetectInferenceStrategy : ITaskModelInferenceStrategy
                     result.Add(temp);
                 }
             }
+            
+            // NMS过滤
+            result = YoloHelper.NMSFilter(result, iouThreshold, allIou);
 
             return result;
         }
