@@ -1,4 +1,5 @@
 ﻿using CanCanNeedJJBong.Yolo.Core.Basic;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
@@ -8,8 +9,10 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 /// </summary>
 public class ClassifyInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
-    public List<YoloData> ExecuteTask(Tensor<float> data, float confidenceDegree, float iouThreshold, bool allIou, Yolo yolo)
+    public List<YoloData> ExecuteTask(Yolo yolo,IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree, float iouThreshold, bool allIou)
     {
+        var data = yolo.ModelSession.Run(container).First().AsTensor<float>();
+        
         List<YoloData> result = new List<YoloData>();
 
         for (int i = 0; i < data.Dimensions[1]; i++)

@@ -1,4 +1,6 @@
 ﻿using CanCanNeedJJBong.Yolo.Core.Basic;
+using Microsoft.ML.OnnxRuntime.Tensors;
+using OpenCvSharp;
 
 namespace CanCanNeedJJBong.Yolo.Core;
 
@@ -26,7 +28,7 @@ public static class YoloHelper
             data.Sort((x, y) => y.BasicData[4].CompareTo(x.BasicData[4]));
         }
     }
-    
+
     /// <summary>
     /// nms过滤
     /// </summary>
@@ -69,7 +71,71 @@ public static class YoloHelper
 
         return result;
     }
+
+    /// <summary>
+    /// 还原掩膜
+    /// </summary>
+    /// <param name="data">数据</param>
+    /// <param name="output1">输出张量</param>
+    public static void ReductionMask(List<YoloData> data, Tensor<float>? output1, int semanticSegmentationWidth,
+        int[] outputTensorInfo2_Segmentation,float maskScaleRatioW,float maskScaleRatioH,float scaleRatio)
+    {
+        // 将输出张量转换为矩阵
+        Mat ot1 = new Mat(semanticSegmentationWidth,
+            outputTensorInfo2_Segmentation[2] * outputTensorInfo2_Segmentation[3], MatType.CV_32F, output1.ToArray());
+
+        foreach (var yoloData in data)
+        {
+            // 原始mask
+            Mat initMask = yoloData.MaskData * ot1;
+
+            // 对mask进行并行处理，应用Sigmoid函数
+            Parallel.For(0, initMask.Cols,
+                col => { initMask.At<float>(0, col) = Sigmoid(initMask.At<float>(0, col)); });
+
+            // 重塑mask
+            Mat newMask = initMask.Reshape(1, outputTensorInfo2_Segmentation[2], outputTensorInfo2_Segmentation[3]);
+
+            // 计算掩膜的左上角和宽高
+            int maskX1 = Math.Max(0, (int)((yoloData.BasicData[0] - yoloData.BasicData[2] / 2) * maskScaleRatioW));
+            int maskY1 = Math.Max(0, (int)((yoloData.BasicData[1] - yoloData.BasicData[3] / 2) * maskScaleRatioH));
+            int maskWidth = (int)(yoloData.BasicData[2] * maskScaleRatioW);
+            int maskHeight = (int)(yoloData.BasicData[3] * maskScaleRatioH);
+
+            // 限制宽高在输出张量的范围内
+            if (maskX1 + maskWidth > outputTensorInfo2_Segmentation[3])
+                maskWidth = outputTensorInfo2_Segmentation[3] - maskX1;
+            if (maskY1 + maskHeight > outputTensorInfo2_Segmentation[2])
+                maskHeight = outputTensorInfo2_Segmentation[2] - maskY1;
+
+            // 定义裁剪区域
+            Rect rect = new Rect(maskX1, maskY1, maskWidth, maskHeight);
+
+            // 裁剪后的掩膜
+            Mat afterMat = new Mat(newMask, rect);
+
+            // 还原原图掩膜
+            Mat restoredMask = new Mat();
+
+            // 计算放大后的宽高
+            int enlargedWidth = (int)(afterMat.Width / maskScaleRatioW / scaleRatio);
+            int enlargedHeight = (int)(afterMat.Height / maskScaleRatioH / scaleRatio);
+
+            // 调整掩膜大小
+            Cv2.Resize(afterMat, restoredMask, new OpenCvSharp.Size(enlargedWidth, enlargedHeight));
+            // 阈值处理
+            Cv2.Threshold(restoredMask, restoredMask, 0.5, 1, ThresholdTypes.Binary);
+
+            // 将还原后的掩膜赋值回数据
+            yoloData.MaskData = restoredMask;
+        }
+    }
     
+    private static float Sigmoid(float value)
+    {
+        return 1 / (1 + (float)Math.Exp(-value));
+    }
+
     #region 计算交并比 CalcCrossMergeRatio
 
     /// <summary>

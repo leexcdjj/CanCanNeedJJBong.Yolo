@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using CanCanNeedJJBong.Yolo.Core.Basic;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
@@ -9,8 +10,10 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 /// </summary>
 public class DetectInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
-    public List<YoloData> ExecuteTask(Tensor<float> data, float confidenceDegree, float iouThreshold, bool allIou, Yolo yolo)
+    public List<YoloData> ExecuteTask(Yolo yolo,IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree, float iouThreshold, bool allIou)
     {
+        var data = yolo.ModelSession.Run(container).First().AsTensor<float>();
+        
         // 是否中间是尺寸
         bool midIsSize = data.Dimensions[1] < data.Dimensions[2];
         int outputSize = midIsSize ? data.Dimensions[2] : data.Dimensions[1];

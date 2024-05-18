@@ -1,4 +1,5 @@
 ﻿using CanCanNeedJJBong.Yolo.Core.Basic;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy;
@@ -8,5 +9,5 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy;
 /// </summary>
 public interface ITaskModelInferenceStrategy
 {
-    List<YoloData> ExecuteTask(Tensor<float> data, float confidenceDegree, float iouThreshold, bool allIou, Yolo yolo);
+    List<YoloData> ExecuteTask(Yolo yolo,IReadOnlyCollection<NamedOnnxValue> container,float confidenceDegree, float iouThreshold, bool allIou);
 }

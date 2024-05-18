@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using CanCanNeedJJBong.Yolo.Core.Basic;
+using CanCanNeedJJBong.Yolo.Core.TaskModelStrategy;
 using CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV5;
 using CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV6;
 using CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
@@ -118,6 +119,8 @@ public class Yolo
     /// 执行任务模式
     /// </summary>
     private int ExecutionTaskMode = 0;
+    
+    private ITaskModelInferenceStrategyFactory TaskModelInferenceStrategyFactory { get; set; } = new TaskModelInferenceStrategyFactory();
 
     /// <summary>
     /// 任务模式
@@ -211,69 +214,15 @@ public class Yolo
         {
             NamedOnnxValue.CreateFromTensor(ModelInputName, InputTensor)
         };
-
-        Tensor<float> output0;
-        Tensor<float> output1;
         
         // 过滤数据数组
-        List<YoloData> filterDataList = new List<YoloData>();
         List<YoloData> result = new List<YoloData>();
         
-        if (ExecutionTaskMode == 0)
-        {
-            output0 = ModelSession.Run(container).First().AsTensor<float>();
-
-            result = new ClassifyInferenceStrategyV8().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
-        }
+        // 获取任务模式处理策略
+        var taskModelStrategy = TaskModelInferenceStrategyFactory.CreateTaskModelStrategy(ExecutionTaskMode,YoloVersion);
         
-        if (ExecutionTaskMode == 1)
-        {
-            output0 = ModelSession.Run(container).First().AsTensor<float>();
-            if (YoloVersion == 8)
-            {
-                result = new DetectInferenceStrategyV8().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
-            }
-            else if (YoloVersion == 5)
-            {
-                result = new DetectInferenceStrategyV5().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
-            }
-            else
-            {
-                result = new DetectInferenceStrategyV6().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
-            }
-        }
-        
-        if (ExecutionTaskMode == 2 || ExecutionTaskMode == 3)
-        {
-            // 返回数据
-            var list = ModelSession.Run(container);
-            output0 = list.First().AsTensor<float>();
-            output1 = list.ElementAtOrDefault(1)?.AsTensor<float>();
-            if (YoloVersion == 8)
-            {
-                result = new SegmentInferenceStrategyV8().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
-            }
-            else
-            {
-                result = new SegmentInferenceStrategyV5().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
-            }
-            
-            ReductionMask(result, output1);
-        }
-        
-        if (ExecutionTaskMode == 4 || ExecutionTaskMode == 5)
-        {
-            output0 = ModelSession.Run(container).First().AsTensor<float>();
-
-            result = new PoseInferenceStrategyV8().ExecuteTask(output0,confidenceDegree,iouThreshold,allIou,this);
-        }
-        
-        if (ExecutionTaskMode == 6)
-        {
-            output0 = ModelSession.Run(container).First().AsTensor<float>();
-
-            result = new ObbInferenceStrategyV8().ExecuteTask(output0, confidenceDegree,iouThreshold,allIou,this);
-        }
+        // 策略处理
+        result = taskModelStrategy.ExecuteTask(this,container,confidenceDegree,iouThreshold,allIou);
 
         RestoreCoordinates(result);
         if (ExecutionTaskMode != 0)
@@ -437,69 +386,6 @@ public class Yolo
         float[] deploymentTempData = new float[inputTensorInfo[1] * inputTensorInfo[2] * inputTensorInfo[3]];
         Buffer.BlockCopy(tempData, 0, deploymentTempData, 0, deploymentTempData.Length * 4);
         return new DenseTensor<float>(deploymentTempData, inputTensorInfo);
-    }
-    
-    /// <summary>
-    /// 还原掩膜
-    /// </summary>
-    /// <param name="data">数据</param>
-    /// <param name="output1">输出张量</param>
-    private void ReductionMask(List<YoloData> data, Tensor<float>? output1)
-    {
-        // 将输出张量转换为矩阵
-        Mat ot1 = new Mat(SemanticSegmentationWidth,
-            OutputTensorInfo2_Segmentation[2] * OutputTensorInfo2_Segmentation[3], MatType.CV_32F, output1.ToArray());
-
-        foreach (var yoloData in data)
-        {
-            // 原始mask
-            Mat initMask = yoloData.MaskData * ot1;
-
-            // 对mask进行并行处理，应用Sigmoid函数
-            Parallel.For(0, initMask.Cols,
-                col => { initMask.At<float>(0, col) = Sigmoid(initMask.At<float>(0, col)); });
-
-            // 重塑mask
-            Mat newMask = initMask.Reshape(1, OutputTensorInfo2_Segmentation[2], OutputTensorInfo2_Segmentation[3]);
-
-            // 计算掩膜的左上角和宽高
-            int maskX1 = Math.Max(0, (int)((yoloData.BasicData[0] - yoloData.BasicData[2] / 2) * MaskScaleRatioW));
-            int maskY1 = Math.Max(0, (int)((yoloData.BasicData[1] - yoloData.BasicData[3] / 2) * MaskScaleRatioH));
-            int maskWidth = (int)(yoloData.BasicData[2] * MaskScaleRatioW);
-            int maskHeight = (int)(yoloData.BasicData[3] * MaskScaleRatioH);
-
-            // 限制宽高在输出张量的范围内
-            if (maskX1 + maskWidth > OutputTensorInfo2_Segmentation[3])
-                maskWidth = OutputTensorInfo2_Segmentation[3] - maskX1;
-            if (maskY1 + maskHeight > OutputTensorInfo2_Segmentation[2])
-                maskHeight = OutputTensorInfo2_Segmentation[2] - maskY1;
-
-            // 定义裁剪区域
-            Rect rect = new Rect(maskX1, maskY1, maskWidth, maskHeight);
-
-            // 裁剪后的掩膜
-            Mat afterMat = new Mat(newMask, rect);
-
-            // 还原原图掩膜
-            Mat restoredMask = new Mat();
-
-            // 计算放大后的宽高
-            int enlargedWidth = (int)(afterMat.Width / MaskScaleRatioW / ScaleRatio);
-            int enlargedHeight = (int)(afterMat.Height / MaskScaleRatioH / ScaleRatio);
-
-            // 调整掩膜大小
-            Cv2.Resize(afterMat, restoredMask, new OpenCvSharp.Size(enlargedWidth, enlargedHeight));
-            // 阈值处理
-            Cv2.Threshold(restoredMask, restoredMask, 0.5, 1, ThresholdTypes.Binary);
-
-            // 将还原后的掩膜赋值回数据
-            yoloData.MaskData = restoredMask;
-        }
-    }
-    
-    private float Sigmoid(float value)
-    {
-        return 1 / (1 + (float)Math.Exp(-value));
     }
     
     /// <summary>

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using CanCanNeedJJBong.Yolo.Core.Basic;
+using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
 
@@ -10,9 +11,13 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 /// </summary>
 public class SegmentInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
-    public List<YoloData> ExecuteTask(Tensor<float> data, float confidenceDegree, float iouThreshold, bool allIou,
-        Yolo yolo)
+    public List<YoloData> ExecuteTask(Yolo yolo, IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree,
+        float iouThreshold, bool allIou)
     {
+        var list = yolo.ModelSession.Run(container);
+        var data = list.First().AsTensor<float>();
+        var data1 = list.ElementAtOrDefault(1)?.AsTensor<float>();
+
         // 判断中间是否是尺寸
         bool isMidSize = data.Dimensions[1] < data.Dimensions[2];
         int dim1 = data.Dimensions[1];
@@ -117,9 +122,13 @@ public class SegmentInferenceStrategyV8 : ITaskModelInferenceStrategy
                     result.Add(temp);
                 }
             }
-            
+
             // NMS过滤
             result = YoloHelper.NMSFilter(result, iouThreshold, allIou);
+            
+            // 还原掩膜
+            YoloHelper.ReductionMask(result, data1, yolo.SemanticSegmentationWidth, yolo.OutputTensorInfo2_Segmentation,
+                yolo.MaskScaleRatioW, yolo.MaskScaleRatioH, yolo.ScaleRatio);
 
             return result;
         }
