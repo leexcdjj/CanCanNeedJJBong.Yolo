@@ -12,15 +12,14 @@ public class YoloService
     private YoloConfig Config { get; set; }
     private ITaskModelInferenceStrategyFactory TaskModelInferenceStrategyFactory { get; set; }
 
-    public YoloService(string modelPath, bool enableGpu, int gpuIndex, int yoloVersion, int tensorWidth,
-        int tensorHeight)
+    public YoloService(string modelPath, bool enableGpu, int gpuIndex, int yoloVersion)
     {
         enableGpu = false;
         gpuIndex = 0;
         YoloConfigBuilder builder = new YoloConfigBuilder();
         Config = builder.SetModelSession(modelPath, enableGpu, gpuIndex)
             .SetModelMetadata()
-            .SetInferenceParameters(yoloVersion, tensorWidth, tensorHeight)
+            .SetInferenceParameters(yoloVersion)
             .GetYoloConfig();
 
         TaskModelInferenceStrategyFactory = new TaskModelInferenceStrategyFactory();

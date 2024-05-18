@@ -111,7 +111,10 @@ public class YoloConfigBuilder
                 throw new Exception("Unsupported model type");
             }
         }
-
+        
+        // 设置张量宽度和张量高度
+        _yolo.TensorWidth = _yolo.InputTensorInfo[3];
+        _yolo.TensorHeight = _yolo.InputTensorInfo[2];
         return this;
     }
     
@@ -122,11 +125,9 @@ public class YoloConfigBuilder
     /// <param name="tensorWidth">张量宽度</param>
     /// <param name="tensorHeight">张量高度</param>
     /// <returns>Builder对象，用于链式调用</returns>
-    public YoloConfigBuilder SetInferenceParameters(int yoloVersion, int tensorWidth, int tensorHeight)
+    public YoloConfigBuilder SetInferenceParameters(int yoloVersion)
     {
         _yolo.YoloVersion = GetModelVersion(yoloVersion);
-        _yolo.TensorWidth = tensorWidth;
-        _yolo.TensorHeight = tensorHeight;
         return this;
     }
     
