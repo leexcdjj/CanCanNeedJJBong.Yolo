@@ -4,11 +4,11 @@ namespace CanCanNeedJJBong.Yolo.Core.Builder;
 
 public class YoloBuilder
 {
-    private readonly Yolo _yolo;
+    private readonly YoloConfig _yolo;
 
     public YoloBuilder()
     {
-        _yolo = new Yolo();
+        _yolo = new YoloConfig();
     }
     
     /// <summary>

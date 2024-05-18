@@ -9,5 +9,5 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy;
 /// </summary>
 public interface ITaskModelInferenceStrategy
 {
-    List<YoloData> ExecuteTask(Yolo yolo,IReadOnlyCollection<NamedOnnxValue> container,float confidenceDegree, float iouThreshold, bool allIou);
+    List<YoloData> ExecuteTask(YoloConfig yolo,IReadOnlyCollection<NamedOnnxValue> container,float confidenceDegree, float iouThreshold, bool allIou);
 }

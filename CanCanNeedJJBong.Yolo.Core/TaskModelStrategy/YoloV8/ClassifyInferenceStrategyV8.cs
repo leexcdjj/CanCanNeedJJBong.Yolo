@@ -9,7 +9,7 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 /// </summary>
 public class ClassifyInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
-    public List<YoloData> ExecuteTask(Yolo yolo,IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree, float iouThreshold, bool allIou)
+    public List<YoloData> ExecuteTask(YoloConfig yolo,IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree, float iouThreshold, bool allIou)
     {
         var data = yolo.ModelSession.Run(container).First().AsTensor<float>();
         

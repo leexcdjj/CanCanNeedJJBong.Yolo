@@ -13,7 +13,7 @@ using OpenCvSharp;
 
 namespace CanCanNeedJJBong.Yolo.Core;
 
-public class Yolo
+public class YoloConfig
 {
     /// <summary>
     /// 模型会话

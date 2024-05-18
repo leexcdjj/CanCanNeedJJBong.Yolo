@@ -11,7 +11,7 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 /// </summary>
 public class SegmentInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
-    public List<YoloData> ExecuteTask(Yolo yolo, IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree,
+    public List<YoloData> ExecuteTask(YoloConfig yolo, IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree,
         float iouThreshold, bool allIou)
     {
         var list = yolo.ModelSession.Run(container);
