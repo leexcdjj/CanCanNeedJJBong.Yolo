@@ -423,5 +423,93 @@ public static class YoloHelper
         }
     }
     
+    /// <summary>
+    /// 还原画图坐标
+    /// </summary>
+    /// <param name="list">数据列表</param>
+    public static void RestoreDrawCoordinates(List<YoloData> list)
+    {
+        if (list.Count > 0 && list[0].BasicData.Length > 2)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                list[i].BasicData[0] = list[i].BasicData[0] - list[i].BasicData[2] / 2;
+                list[i].BasicData[1] = list[i].BasicData[1] - list[i].BasicData[3] / 2;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 还原中心坐标
+    /// </summary>
+    /// <param name="list">数据列表</param>
+    public static void RestoreMidCoordinates(List<YoloData> list)
+    {
+        if (list.Count > 0 && list[0].BasicData.Length > 2)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                list[i].BasicData[0] = list[i].BasicData[0] + list[i].BasicData[2] / 2;
+                list[i].BasicData[1] = list[i].BasicData[1] + list[i].BasicData[3] / 2;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 生成掩膜图像_内存并行
+    /// </summary>
+    /// <param name="matData">mat数据</param>
+    /// <param name="color">颜色</param>
+    /// <returns></returns>
+    public static Bitmap GenMaskImg_Memory(Mat matData, Color color)
+    {
+        Bitmap maskImg = new Bitmap(matData.Width, matData.Height, PixelFormat.Format32bppArgb);
+        BitmapData maskImgData = maskImg.LockBits(new Rectangle(0, 0, maskImg.Width, maskImg.Height), ImageLockMode.ReadWrite,
+            PixelFormat.Format32bppArgb);
+        int height = maskImg.Height;
+        int width = maskImg.Width;
+        Parallel.For(0, height, i =>
+        {
+            for (int j = 0; j < width; j++)
+            {
+                if (matData.At<float>(i, j) == 1)
+                {
+                    // 起始像素
+                    IntPtr startPix = IntPtr.Add(maskImgData.Scan0, i * maskImgData.Stride + j * 4);
+                    // 颜色信息
+                    byte[] colorMessage = new byte[] { color.B, color.G, color.R, color.A };
+                    Marshal.Copy(colorMessage, 0, startPix, 4);
+                }
+            }
+        });
+        maskImg.UnlockBits(maskImgData);
+        return maskImg;
+    }
+    
+    /// <summary>
+    /// OBB坐标转换
+    /// </summary>
+    /// <param name="data">数据</param>
+    /// <returns>返回OBB矩形结构,分别代表了四个点的坐标</returns>
+    public static OBBRectangularStructure OBBConversion(YoloData data)
+    {
+        float x = data.BasicData[0];
+        float y = data.BasicData[1];
+        float w = data.BasicData[2];
+        float h = data.BasicData[3];
+        float r = data.BasicData[6];
+        float cos_value = (float)Math.Cos(r);
+        float sin_value = (float)Math.Sin(r);
+        float[] vec1 = { w / 2 * cos_value, w / 2 * sin_value };
+        float[] vec2 = { -h / 2 * sin_value, h / 2 * cos_value };
+        
+        OBBRectangularStructure oBBrectangle = new OBBRectangularStructure();
+        oBBrectangle.pt1 = new PointF(x + vec1[0] + vec2[0], y + vec1[1] + vec2[1]);
+        oBBrectangle.pt2 = new PointF(x + vec1[0] - vec2[0], y + vec1[1] - vec2[1]);
+        oBBrectangle.pt3 = new PointF(x - vec1[0] - vec2[0], y - vec1[1] - vec2[1]);
+        oBBrectangle.pt4 = new PointF(x - vec1[0] + vec2[0], y - vec1[1] + vec2[1]);
+        return oBBrectangle;
+    }
+    
     #endregion
 }
