@@ -2,11 +2,11 @@
 
 namespace CanCanNeedJJBong.Yolo.Core.Builder;
 
-public class YoloBuilder
+public class YoloConfigBuilder
 {
     private readonly YoloConfig _yolo;
 
-    public YoloBuilder()
+    public YoloConfigBuilder()
     {
         _yolo = new YoloConfig();
     }
@@ -18,7 +18,7 @@ public class YoloBuilder
     /// <param name="enableGpu">是否启用GPU</param>
     /// <param name="gpuIndex">GPU索引</param>
     /// <returns>Builder对象，用于链式调用</returns>
-    public YoloBuilder SetModelSession(string modelPath, bool enableGpu = false, int gpuIndex = 0)
+    public YoloConfigBuilder SetModelSession(string modelPath, bool enableGpu = false, int gpuIndex = 0)
     {
         if (enableGpu)
         {
@@ -43,7 +43,7 @@ public class YoloBuilder
     /// 设置模型的元数据，包括标签组、模型版本和任务类型。
     /// </summary>
     /// <returns>Builder对象，用于链式调用</returns>
-    public YoloBuilder SetModelMetadata()
+    public YoloConfigBuilder SetModelMetadata()
     {
         var modelMetadata = _yolo.ModelSession.ModelMetadata.CustomMetadataMap;
 
@@ -122,7 +122,7 @@ public class YoloBuilder
     /// <param name="tensorWidth">张量宽度</param>
     /// <param name="tensorHeight">张量高度</param>
     /// <returns>Builder对象，用于链式调用</returns>
-    public YoloBuilder SetInferenceParameters(int yoloVersion, int tensorWidth, int tensorHeight)
+    public YoloConfigBuilder SetInferenceParameters(int yoloVersion, int tensorWidth, int tensorHeight)
     {
         _yolo.YoloVersion = GetModelVersion(yoloVersion);
         _yolo.TensorWidth = tensorWidth;
@@ -135,7 +135,7 @@ public class YoloBuilder
     /// </summary>
     /// <param name="name">标签名字符串</param>
     /// <returns>分割后的标签名数组</returns>
-    public string[] SplitLabelSignature(string name)
+    private string[] SplitLabelSignature(string name)
     {
         // 删除括号
         name = name.Replace("{", "").Replace("}", "");
@@ -153,6 +153,11 @@ public class YoloBuilder
         }
 
         return result;
+    }
+
+    public YoloConfig GetYoloConfig()
+    {
+        return _yolo;
     }
     
     /// <summary>

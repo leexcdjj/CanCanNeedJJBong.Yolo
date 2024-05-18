@@ -1,4 +1,7 @@
-﻿using CanCanNeedJJBong.Yolo.Core.Basic;
+﻿using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
+using CanCanNeedJJBong.Yolo.Core.Basic;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using OpenCvSharp;
 
@@ -212,5 +215,213 @@ public static class YoloHelper
         return (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]);
     }
 
+    #endregion
+    
+    #region 图片缩放
+    /// <summary>
+    /// 图片缩放
+    /// </summary>
+    /// <param name="imgData">图片数据</param>
+    /// <returns>缩放后的图片</returns>
+    public static Bitmap PictureZoom(Bitmap imgData,YoloConfig config)
+    {
+        // 缩放图片的目标宽度和高度
+        float targetWidth = config.InferenceImageWidth;
+        float targetHeight = config.InferenceImageHeight;
+
+        // 计算缩放比例
+        float scaleRatio = CalculateScaleRatio(targetWidth, targetHeight,config);
+
+        // 按比例调整目标宽度和高度
+        targetWidth *= scaleRatio;
+        targetHeight *= scaleRatio;
+
+        // 创建缩放后的图片
+        Bitmap zoomImg = new Bitmap((int)targetWidth, (int)targetHeight);
+
+        // 绘制缩放后的图片
+        using (Graphics graphics = Graphics.FromImage(zoomImg))
+        {
+            // 设置插值模式为高质量双三次插值
+            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            graphics.DrawImage(imgData, 0, 0, targetWidth, targetHeight);
+        }
+
+        return zoomImg;
+    }
+
+    /// <summary>
+    /// 计算缩放比例
+    /// </summary>
+    /// <param name="targetWidth">目标宽度</param>
+    /// <param name="targetHeight">目标高度</param>
+    /// <returns>缩放比例</returns>
+    private static float CalculateScaleRatio(float targetWidth, float targetHeight,YoloConfig config)
+    {
+        if (targetWidth > config.TensorWidth || targetHeight >config.TensorHeight)
+        {
+            // 选择较小的缩放比例
+            return Math.Min(config.TensorWidth / targetWidth, config.TensorHeight / targetHeight);
+        }
+        return 1f;
+    }
+    
+    /// <summary>
+    /// 图片写到张量_内存并行
+    /// </summary>
+    /// <param name="imgData">图片数据</param>
+    /// <param name="inputTensorInfo">输入张量信息</param>
+    /// <returns></returns>
+    public static DenseTensor<float> PicWriTensor_Memory(Bitmap imgData, int[] inputTensorInfo)
+    {
+        int height = imgData.Height;
+        int width = imgData.Width;
+        
+        // 内存图片数据
+        BitmapData memoryImgData = imgData.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly,
+            PixelFormat.Format24bppRgb);
+        
+        int stride = memoryImgData.Stride;
+        IntPtr scan0 = memoryImgData.Scan0;
+        
+        // 临时数据
+        float[,,] tempData = new float[inputTensorInfo[1], inputTensorInfo[2], inputTensorInfo[3]];
+        
+        try
+        {
+            Parallel.For(0, height, y =>
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    IntPtr pixel = IntPtr.Add(scan0, y * stride + x * 3);
+                    tempData[2, y, x] = Marshal.ReadByte(pixel) / 255f;
+                    pixel = IntPtr.Add(pixel, 1);
+                    tempData[1, y, x] = Marshal.ReadByte(pixel) / 255f;
+                    pixel = IntPtr.Add(pixel, 1);
+                    tempData[0, y, x] = Marshal.ReadByte(pixel) / 255f;
+                }
+            });
+        }
+        finally
+        {
+            imgData.UnlockBits(memoryImgData);
+        }
+        
+        // 展开临时数据
+        float[] deploymentTempData = new float[inputTensorInfo[1] * inputTensorInfo[2] * inputTensorInfo[3]];
+        Buffer.BlockCopy(tempData, 0, deploymentTempData, 0, deploymentTempData.Length * 4);
+        
+        return new DenseTensor<float>(deploymentTempData, inputTensorInfo);
+    }
+    
+    /// <summary>
+    /// 无插值写入张量
+    /// </summary>
+    /// <param name="imgData">图片数据</param>
+    /// <param name="inputTensorInfo">输入张量信息</param>
+    /// <returns></returns>
+    public static DenseTensor<float> NoInterpolationWriteTensor(Bitmap imgData,YoloConfig config)
+    {
+        // 内存图片数据
+        BitmapData memoryPicData = imgData.LockBits(new Rectangle(0, 0, imgData.Width, imgData.Height), ImageLockMode.ReadOnly,
+            PixelFormat.Format24bppRgb);
+        
+        int stride = memoryPicData.Stride;
+        IntPtr scan0 = memoryPicData.Scan0;
+        
+        // 临时数据
+        float[,,] tempData = new float[config.InputTensorInfo[1], config.InputTensorInfo[2], config.InputTensorInfo[3]];
+        
+        float zoomImgWidth = config.InferenceImageWidth;
+        float zoomImgHeight = config.InferenceImageHeight;
+        
+        if (zoomImgWidth > config.TensorWidth || zoomImgHeight > config.TensorHeight)
+        {
+            config.ScaleRatio = (config.TensorWidth / zoomImgWidth) < (config.TensorHeight / zoomImgHeight) ? (config.TensorWidth / zoomImgWidth) : (config.TensorHeight / zoomImgHeight);
+            zoomImgWidth = zoomImgWidth * config.ScaleRatio;
+            zoomImgHeight = zoomImgHeight * config.ScaleRatio;
+        }
+        
+        // x,y坐标
+        int xCoordinate, yCoordinate;
+        
+        // 系数
+        float coefficient = 1 / config.ScaleRatio;
+        
+        for (int y = 0; y < (int)zoomImgHeight; y++)
+        {
+            for (int x = 0; x < (int)zoomImgWidth; x++)
+            {
+                xCoordinate = (int)(x * coefficient);
+                yCoordinate = (int)(y * coefficient);
+                IntPtr pixel = IntPtr.Add(scan0, yCoordinate * stride + xCoordinate * 3);
+                tempData[2, y, x] = Marshal.ReadByte(pixel) / 255f;
+                pixel = IntPtr.Add(pixel, 1);
+                tempData[1, y, x] = Marshal.ReadByte(pixel) / 255f;
+                pixel = IntPtr.Add(pixel, 1);
+                tempData[0, y, x] = Marshal.ReadByte(pixel) / 255f;
+            }
+        }
+
+        imgData.UnlockBits(memoryPicData);
+        float[] deploymentTempData = new float[config.InputTensorInfo[1] * config.InputTensorInfo[2] * config.InputTensorInfo[3]];
+        Buffer.BlockCopy(tempData, 0, deploymentTempData, 0, deploymentTempData.Length * 4);
+        return new DenseTensor<float>(deploymentTempData, config.InputTensorInfo);
+    }
+    
+    /// <summary>
+    /// 还原返回坐标
+    /// </summary>
+    /// <param name="data">数据列表</param>
+    public static void RestoreCoordinates(List<YoloData> data,YoloConfig config)
+    {
+        if (data.Count == 0) return;
+
+        // 如果 BasicData 长度大于 2，调整坐标比例
+        if (data[0].BasicData.Length > 2)
+        {
+            foreach (var item in data)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    item.BasicData[j] /= config.ScaleRatio;
+                }
+            }
+        }
+
+        // 如果 PointKeys 不为空，调整坐标比例
+        if (data[0].PointKeys != null)
+        {
+            foreach (var item in data)
+            {
+                foreach (var point in item.PointKeys)
+                {
+                    point.X /= config.ScaleRatio;
+                    point.Y /= config.ScaleRatio;
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 去除越界坐标
+    /// </summary>
+    /// <param name="data">数据列表</param>
+    public static void RemoveCoordinates(List<YoloData> data,YoloConfig config)
+    {
+        // 倒序移除越界数据
+        for (int i = data.Count - 1; i >= 0; i--)
+        {
+            // 如果数据的任何一个坐标超出张量范围，移除该数据
+            if (data[i].BasicData[0] > config.TensorWidth ||
+                data[i].BasicData[1] > config.TensorHeight ||
+                data[i].BasicData[2] > config.TensorWidth ||
+                data[i].BasicData[3] > config.TensorHeight)
+            {
+                data.RemoveAt(i);
+            }
+        }
+    }
+    
     #endregion
 }
