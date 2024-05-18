@@ -1,4 +1,4 @@
-﻿namespace CanCanNeedJJBong.Yolo.Core;
+﻿namespace CanCanNeedJJBong.Yolo.Core.Basic;
 
 /// <summary>
 /// Post模型的点数据

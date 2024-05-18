@@ -1,7 +1,7 @@
 ﻿using System.Drawing;
 using OpenCvSharp;
 
-namespace CanCanNeedJJBong.Yolo.Core;
+namespace CanCanNeedJJBong.Yolo.Core.Basic;
 
 /// <summary>
 /// 卡尔曼滤波代理

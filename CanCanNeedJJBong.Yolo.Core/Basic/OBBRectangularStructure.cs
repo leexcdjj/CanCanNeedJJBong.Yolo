@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace CanCanNeedJJBong.Yolo.Core;
+namespace CanCanNeedJJBong.Yolo.Core.Basic;
 
 /// <summary>
 /// OBB矩形结构

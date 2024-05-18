@@ -1,6 +1,6 @@
 ﻿using OpenCvSharp;
 
-namespace CanCanNeedJJBong.Yolo.Core;
+namespace CanCanNeedJJBong.Yolo.Core.Basic;
 
 /// <summary>
 /// Yolo的数据
