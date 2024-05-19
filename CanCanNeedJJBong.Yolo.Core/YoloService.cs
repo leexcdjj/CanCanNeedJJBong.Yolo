@@ -65,14 +65,14 @@ public class YoloService
 
         // 获取任务模式处理策略
         var taskModelStrategy =
-            TaskModelInferenceStrategyFactory.CreateTaskModelStrategy(Config.ExecutionTaskMode, Config.YoloVersion);
+            TaskModelInferenceStrategyFactory.CreateTaskModelStrategy(Config.TaskMode, Config.YoloVersion);
 
         // 策略处理
         result = taskModelStrategy.ExecuteTask(Config, container, confidenceDegree, iouThreshold, allIou);
 
         YoloHelper.RestoreCoordinates(result, Config);
 
-        if (Config.ExecutionTaskMode != 0)
+        if (Config.TaskMode != 0)
         {
             YoloHelper.RemoveCoordinates(result, Config);
         }
@@ -130,7 +130,7 @@ public class YoloService
         string writeValue;
 
         //分类
-        if (Config.ExecutionTaskMode == 0)
+        if (Config.TaskMode == 0)
         {
             YoloHelper.RestoreDrawCoordinates(data);
 
@@ -163,7 +163,7 @@ public class YoloService
         }
 
         //画掩膜
-        if (Config.ExecutionTaskMode == 2 || Config.ExecutionTaskMode == 3)
+        if (Config.TaskMode == 2 || Config.TaskMode == 3)
         {
             YoloHelper.RestoreDrawCoordinates(data);
             if (noMaskBcolor != null)
@@ -220,7 +220,7 @@ public class YoloService
             YoloHelper.RestoreMidCoordinates(data);
         }
 
-        if (Config.ExecutionTaskMode == 1 || Config.ExecutionTaskMode == 3 || Config.ExecutionTaskMode == 5)
+        if (Config.TaskMode == 1 || Config.TaskMode == 3 || Config.TaskMode == 5)
         {
             YoloHelper.RestoreDrawCoordinates(data);
             for (int i = 0; i < data.Count; i++)
@@ -250,7 +250,7 @@ public class YoloService
             YoloHelper.RestoreMidCoordinates(data);
         }
 
-        if (Config.ExecutionTaskMode == 4 || Config.ExecutionTaskMode == 5)
+        if (Config.TaskMode == 4 || Config.TaskMode == 5)
         {
             YoloHelper.RestoreDrawCoordinates(data);
             if (data.Count > 0 && data[0].PointKeys.Length == 17)
@@ -421,7 +421,7 @@ public class YoloService
 
             YoloHelper.RestoreMidCoordinates(data);
         }
-        else if (Config.ExecutionTaskMode == 6)
+        else if (Config.TaskMode == 6)
         {
             for (int i = 0; i < data.Count; i++)
             {

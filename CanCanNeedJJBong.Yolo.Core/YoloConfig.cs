@@ -118,7 +118,7 @@ public class YoloConfig
     /// <summary>
     /// 执行任务模式
     /// </summary>
-    public int ExecutionTaskMode = 0;
+    private int ExecutionTaskMode = 0;
     
     /// <summary>
     /// 任务模式
