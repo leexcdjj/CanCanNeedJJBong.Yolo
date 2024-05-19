@@ -7,9 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.17.3" />
-      <PackageReference Include="OpenCvSharp4" Version="4.9.0.20240103" />
-      <PackageReference Include="System.Drawing.Common" Version="9.0.0-preview.3.24172.9" />
+        <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.18.0" />
+        <PackageReference Include="OpenCvSharp4.Extensions" Version="4.9.0.20240103" />
+        <PackageReference Include="OpenCvSharp4.Windows" Version="4.9.0.20240103" />
     </ItemGroup>
 
 </Project>

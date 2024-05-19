@@ -10,107 +10,96 @@ namespace CanCanNeedJJBong.Yolo.Core.TaskModelStrategy.YoloV8;
 /// </summary>
 public class DetectInferenceStrategyV8 : ITaskModelInferenceStrategy
 {
-    public List<YoloData> ExecuteTask(YoloConfig yolo,IReadOnlyCollection<NamedOnnxValue> container, float confidenceDegree, float iouThreshold, bool allIou)
+    public List<YoloData> ExecuteTask(YoloConfig yolo, IReadOnlyCollection<NamedOnnxValue> container,
+        float confidenceDegree, float iouThreshold, bool allIou)
     {
-        var data = yolo.ModelSession.Run(container).First().AsTensor<float>();
-        
-        // 是否中间是尺寸
-        bool midIsSize = data.Dimensions[1] < data.Dimensions[2];
-        int outputSize = midIsSize ? data.Dimensions[2] : data.Dimensions[1];
-        int numDetections = midIsSize ? data.Dimensions[2] : data.Dimensions[0];
-        int confIndex = 4 + yolo.SemanticSegmentationWidth + yolo.ActionWidth;
+        // 运行模型并获取结果
+        Tensor<float> data = yolo.ModelSession.Run(container).First().AsTensor<float>();
+        List<YoloData> result = new List<YoloData>();
 
-        if (midIsSize)
+        // 判断数据维度是否为中间尺寸
+        bool isMidSize = data.Dimensions[1] < data.Dimensions[2];
+
+        if (isMidSize)
         {
-            var result = new ConcurrentBag<YoloData>();
-
-            // 并行处理每个检测结果
-            Parallel.For(0, numDetections, i =>
+            // 使用并发集合处理并行任务
+            ConcurrentBag<YoloData> conList = new ConcurrentBag<YoloData>();
+            Parallel.For(0, data.Dimensions[2], i =>
             {
-                float tempConfidenceDegree = 0f;
-                int index = -1;
-
-                // 遍历置信度，找出最高的置信度和对应的索引
-                for (int j = 0; j < outputSize - confIndex; j++)
+                float maxConfidence = 0f;
+                int maxIndex = -1;
+                // 遍历每个检测结果，找到最大置信度的索引
+                for (int j = 0; j < data.Dimensions[1] - 4 - yolo.SemanticSegmentationWidth - yolo.ActionWidth; j++)
                 {
                     if (data[0, j + 4, i] >= confidenceDegree)
                     {
-                        if (tempConfidenceDegree < data[0, j + 4, i])
+                        if (maxConfidence < data[0, j + 4, i])
                         {
-                            tempConfidenceDegree = data[0, j + 4, i];
-                            index = j;
+                            maxConfidence = data[0, j + 4, i];
+                            maxIndex = j;
                         }
                     }
                 }
 
-                if (index != -1)
+                // 如果找到有效索引，则添加到结果列表
+                if (maxIndex != -1)
                 {
-                    // 将结果添加到并发集合中
-                    var temp = new YoloData
-                    {
-                        BasicData = new float[6]
-                        {
-                            data[0, 0, i],
-                            data[0, 1, i],
-                            data[0, 2, i],
-                            data[0, 3, i],
-                            tempConfidenceDegree,
-                            index
-                        }
-                    };
-                    result.Add(temp);
+                    float[] tobeAddData = new float[6];
+                    YoloData temp = new YoloData();
+                    tobeAddData[0] = data[0, 0, i];
+                    tobeAddData[1] = data[0, 1, i];
+                    tobeAddData[2] = data[0, 2, i];
+                    tobeAddData[3] = data[0, 3, i];
+                    tobeAddData[4] = maxConfidence;
+                    tobeAddData[5] = maxIndex;
+                    temp.BasicData = tobeAddData;
+                    conList.Add(temp);
                 }
             });
 
-            return result.ToList();
+            // 转换并发集合为列表
+            result = conList.ToList();
         }
         else
         {
-            var result = new List<YoloData>();
-            var dataArray = data.ToArray();
-
-            // 处理每个检测结果
+            // 对于非中间尺寸的数据处理
+            int outputSize = data.Dimensions[2];
+            float[] dataArray = data.ToArray();
             for (int i = 0; i < dataArray.Length; i += outputSize)
             {
-                float tempConfidenceDegree = 0f;
-                int index = -1;
-
-                // 遍历置信度，找出最高的置信度和对应的索引
-                for (int j = 0; j < outputSize - confIndex; j++)
+                float maxConfidence = 0f;
+                int maxIndex = -1;
+                for (int j = 0; j < outputSize - 4 - yolo.SemanticSegmentationWidth - yolo.ActionWidth; j++)
                 {
                     if (dataArray[i + 4 + j] > confidenceDegree)
                     {
-                        if (tempConfidenceDegree < dataArray[i + 4 + j])
+                        if (maxConfidence < dataArray[i + 4 + j])
                         {
-                            tempConfidenceDegree = dataArray[i + 4 + j];
-                            index = j;
+                            maxConfidence = dataArray[i + 4 + j];
+                            maxIndex = j;
                         }
                     }
                 }
 
-                if (index != -1)
+                if (maxIndex != -1)
                 {
-                    // 将结果添加到列表中
-                    var temp = new YoloData
-                    {
-                        BasicData = new float[6]
-                        {
-                            dataArray[i],
-                            dataArray[i + 1],
-                            dataArray[i + 2],
-                            dataArray[i + 3],
-                            tempConfidenceDegree,
-                            index
-                        }
-                    };
+                    float[] tobeAddData = new float[6];
+                    YoloData temp = new YoloData();
+                    tobeAddData[0] = dataArray[i];
+                    tobeAddData[1] = dataArray[i + 1];
+                    tobeAddData[2] = dataArray[i + 2];
+                    tobeAddData[3] = dataArray[i + 3];
+                    tobeAddData[4] = maxConfidence;
+                    tobeAddData[5] = maxIndex;
+                    temp.BasicData = tobeAddData;
                     result.Add(temp);
                 }
             }
-            
-            // NMS过滤
-            result = YoloHelper.NMSFilter(result, iouThreshold, allIou);
-
-            return result;
         }
+
+        // 应用非极大值抑制（NMS）过滤
+        result = YoloHelper.NMSFilter(result, iouThreshold, allIou);
+
+        return result;
     }
 }

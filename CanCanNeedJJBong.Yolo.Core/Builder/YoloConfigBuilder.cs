@@ -125,8 +125,9 @@ public class YoloConfigBuilder
     /// <param name="tensorWidth">张量宽度</param>
     /// <param name="tensorHeight">张量高度</param>
     /// <returns>Builder对象，用于链式调用</returns>
-    public YoloConfigBuilder SetInferenceParameters(int yoloVersion)
+    public YoloConfigBuilder SetInferenceParameters(int yoloVersion,int taskMode)
     {
+        _yolo.TaskMode = taskMode;
         _yolo.YoloVersion = GetModelVersion(yoloVersion);
         return this;
     }

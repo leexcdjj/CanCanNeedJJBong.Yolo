@@ -8,7 +8,7 @@ class Program
     /// <summary>
     /// 置信度
     /// </summary>
-    private static float confidenceDegree => float.Parse("0.5");
+    private static float confidenceDegree => 0.5f;
 
     /// <summary>
     /// 全局iou
@@ -23,30 +23,27 @@ class Program
     static void Main(string[] args)
     {
         Console.WriteLine("Hello, Yolo!");
-        Console.WriteLine("请输入推理测试模式 => 1:分类,2:检测,3:分割,4:检测加分割,5:关键点,6:检测加关键点,7:OBB检测");
+        Console.WriteLine("请输入推理测试模式 => 0:分类,1:检测,2:分割,3:检测加分割,4:关键点,5:检测加关键点,6:OBB检测");
         
         int taskMode = int.Parse(Console.ReadLine());
         
-        // cls测试
         switch (taskMode)
         {
-            case 1:
+            case 0:
                 Cls();
                 break;
-            case 2:
-                // 错误
+            case 1:
                 Detection();
                 break;
+            case 2:
             case 3:
-            case 4:
-                // 错误
                 Seg();
                 break;
+            case 4:
             case 5:
-            case 6:
                 keyPoints();
                 break;
-            case 7:
+            case 6:
                 OBB();
                 break;
             default:
@@ -60,45 +57,56 @@ class Program
 
     public static void Cls()
     {
-        ReasonAndGen("螺丝刀2.jpg","yolov8n-cls.onnx","cls");
+        ReasonAndGen("螺丝刀2.jpg","yolov8n-cls.onnx","cls",0);
     }
     
     public static void Detection()
     {
-        ReasonAndGen("OBB测试飞机场2.bmp","yolov9-c.onnx","Detection");
+        ReasonAndGen("OBB测试飞机场2.bmp","yolov9-c.onnx","Detection",1);
     }
     
     public static void Seg()
     {
-        ReasonAndGen("83c6a5691f1464f9c0e963f5d42bf3e0.jpeg","yolov8n-seg.transd.onnx","Seg");
+        ReasonAndGen("83c6a5691f1464f9c0e963f5d42bf3e0.jpeg","yolov8n-seg.transd.onnx","Seg",3);
     }
 
     public static void keyPoints()
     {
-        ReasonAndGen("4.bmp", "yolov8n-pose.transd.onnx","KeyPoints");
+        ReasonAndGen("4.bmp", "yolov8n-pose.transd.onnx","KeyPoints",5);
     }
 
     public static void OBB()
     {
-        ReasonAndGen("OBB测试球场.jpg", "yolov8n-obb.transd.onnx","OBB");
+        ReasonAndGen("OBB测试球场.jpg", "yolov8n-obb.transd.onnx","OBB",6);
     }
 
-    public static void ReasonAndGen(string testImgName,string modelName,string action)
+    public static void ReasonAndGen(string testImgName,string modelName,string action,int taskMode)
     {
+        string currentDirectory = Directory.GetCurrentDirectory();
+        
+        string modelsDirectory = Path.Combine(currentDirectory, "Models");
+        string testImgDirectory = Path.Combine(currentDirectory, "TestImg");
+        string genImgDirectory = Path.Combine(currentDirectory, "GenImg");
+        
+        if (!Directory.Exists(genImgDirectory))
+        {
+            Directory.CreateDirectory(genImgDirectory);
+        }
+        
         string genImgName = testImgName.Replace(Path.GetExtension(testImgName),"")  + action+".jpg";
         
         string modelPath =
-            Path.Combine("D:\\Source\\My\\CanCanNeedJJBong.Yolo\\CanCanNeedJJBong.Yolo.TestConsole\\Models", modelName);
+            Path.Combine(modelsDirectory, modelName);
         
         string testImgPath =
-            Path.Combine("D:\\Source\\My\\CanCanNeedJJBong.Yolo\\CanCanNeedJJBong.Yolo.TestConsole\\TestImg",
+            Path.Combine(testImgDirectory,
                 testImgName);
         
         string genImgPath =
-            Path.Combine("D:\\Source\\My\\CanCanNeedJJBong.Yolo\\CanCanNeedJJBong.Yolo.TestConsole\\GenImg",
+            Path.Combine(genImgDirectory,
                 genImgName);
 
-        var yolo = new YoloService(modelPath, false, 0, 8);
+        var yolo = new YoloService(modelPath, false, 0, 8,taskMode);
         
         Bitmap imgBit = new Bitmap(testImgPath);
         var data = yolo.ModelReasoning(imgBit, confidenceDegree, iou, allIou, 1);

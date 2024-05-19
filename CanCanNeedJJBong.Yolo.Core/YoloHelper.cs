@@ -409,18 +409,18 @@ public static class YoloHelper
     /// <param name="data">数据列表</param>
     public static void RemoveCoordinates(List<YoloData> data,YoloConfig config)
     {
-        // 倒序移除越界数据
+        //倒序移除
         for (int i = data.Count - 1; i >= 0; i--)
         {
-            // 如果数据的任何一个坐标超出张量范围，移除该数据
-            if (data[i].BasicData[0] > config.TensorWidth ||
-                data[i].BasicData[1] > config.TensorHeight ||
-                data[i].BasicData[2] > config.TensorWidth ||
-                data[i].BasicData[3] > config.TensorHeight)
+            if (data[i].BasicData[0] > config.InferenceImageWidth ||
+                data[i].BasicData[1] > config.InferenceImageHeight ||
+                data[i].BasicData[2] > config.InferenceImageWidth ||
+                data[i].BasicData[3] > config.InferenceImageHeight)
             {
                 data.RemoveAt(i);
             }
         }
+        
     }
     
     /// <summary>
