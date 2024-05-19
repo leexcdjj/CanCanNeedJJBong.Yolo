@@ -96,7 +96,7 @@ public class YoloService
     /// <param name="classShowCount">分类显示数量：分类模型显示分类标签的数量,默认为5,即最多显示5个,分类标签的文字颜色、大小、底色,可直接从前面的参数指定</param>
     /// <param name="credibilityThresholdKeyPoints">关键点可信度阈值：用于决定显示关键点的可信度阈值,通常默认0.5,即高于0.5就显示,低于0.5就不显示,通常预测的点在框外的话就会低于0.5</param>
     /// <returns>返回绘制后的图像</returns>
-    public Image GenerateIma(Image imgData, List<YoloData> data, string[] lableGroup, Pen? BorderBrush = null,
+    public Image GenerateIma(Image imgData, List<YoloData> data, Pen? BorderBrush = null,
         Font font = null,
         SolidBrush textColorBrush = null, SolidBrush textBackgroundBrush = null,
         bool segmentationMaskRandomColor = true, Color[] specifyLabelMaskColor = null,
@@ -142,13 +142,13 @@ public class YoloService
                 int lableIndex = (int)data[i].BasicData[1];
                 string confidenceDegree = data[i].BasicData[0].ToString("_0.00");
                 string lableName;
-                if (lableIndex + 1 > lableGroup.Length)
+                if (lableIndex + 1 > Config.LabelGroup.Length)
                 {
                     lableName = "无类别名称";
                 }
                 else
                 {
-                    lableName = lableGroup[lableIndex];
+                    lableName = Config.LabelGroup[lableIndex];
                 }
 
                 writeValue = lableName + confidenceDegree;
@@ -226,13 +226,13 @@ public class YoloService
             for (int i = 0; i < data.Count; i++)
             {
                 string confidenceDegree = data[i].BasicData[4].ToString("_0.00");
-                if ((int)data[i].BasicData[5] + 1 > lableGroup.Length)
+                if ((int)data[i].BasicData[5] + 1 > Config.LabelGroup.Length)
                 {
                     writeValue = confidenceDegree;
                 }
                 else
                 {
-                    writeValue = lableGroup[(int)data[i].BasicData[5]] + confidenceDegree;
+                    writeValue = Config.LabelGroup[(int)data[i].BasicData[5]] + confidenceDegree;
                 }
 
                 textWidth = gra.MeasureString(writeValue + "_0.00", font).Width;
@@ -426,13 +426,13 @@ public class YoloService
             for (int i = 0; i < data.Count; i++)
             {
                 string confidenceDegree = data[i].BasicData[4].ToString("_0.00");
-                if ((int)data[i].BasicData[5] + 1 > lableGroup.Length)
+                if ((int)data[i].BasicData[5] + 1 > Config.LabelGroup.Length)
                 {
                     writeValue = confidenceDegree;
                 }
                 else
                 {
-                    writeValue = lableGroup[(int)data[i].BasicData[5]] + confidenceDegree;
+                    writeValue = Config.LabelGroup[(int)data[i].BasicData[5]] + confidenceDegree;
                 }
 
                 textWidth = gra.MeasureString(writeValue + "_0.00", font).Width;
