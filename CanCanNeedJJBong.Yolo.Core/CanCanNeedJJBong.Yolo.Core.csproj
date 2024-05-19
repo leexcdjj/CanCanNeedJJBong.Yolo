@@ -4,6 +4,13 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <PackageId>CanCanNeedJJBong.Yolo</PackageId>
+        <Authors>leexcdjj</Authors>
+        <Description>封装yolo c#库</Description>
+        <RepositoryUrl>https://github.com/leexcdjj/CanCanNeedJJBong.Yolo</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageReleaseNotes>初始版本</PackageReleaseNotes>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
     <ItemGroup>
