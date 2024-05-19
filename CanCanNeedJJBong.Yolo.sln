@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanCanNeedJJBong.Yolo.Core", "CanCanNeedJJBong.Yolo.Core\CanCanNeedJJBong.Yolo.Core.csproj", "{050C0E7A-6420-47FA-A137-A12A61A578C7}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E06B4E73-5E16-4E91-BF8D-C03CD1E60F17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanCanNeedJJBong.Yolo.TestConsole", "CanCanNeedJJBong.Yolo.TestConsole\CanCanNeedJJBong.Yolo.TestConsole.csproj", "{FBBD0842-CC67-475F-A5ED-7D002F29CB33}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +16,13 @@ Global
 		{050C0E7A-6420-47FA-A137-A12A61A578C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{050C0E7A-6420-47FA-A137-A12A61A578C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{050C0E7A-6420-47FA-A137-A12A61A578C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBBD0842-CC67-475F-A5ED-7D002F29CB33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBBD0842-CC67-475F-A5ED-7D002F29CB33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBBD0842-CC67-475F-A5ED-7D002F29CB33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBBD0842-CC67-475F-A5ED-7D002F29CB33}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{050C0E7A-6420-47FA-A137-A12A61A578C7} = {E06B4E73-5E16-4E91-BF8D-C03CD1E60F17}
+		{FBBD0842-CC67-475F-A5ED-7D002F29CB33} = {E06B4E73-5E16-4E91-BF8D-C03CD1E60F17}
 	EndGlobalSection
 EndGlobal
